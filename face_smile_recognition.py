@@ -112,24 +112,37 @@ while True:
             #TODO: function that overlays image with existing black numpy array -> scale starting position from (width,height)
             #let's only find one smile
             break
-
-    #cv2.cv.Flip(frame, None, 1)
-    cv2.imshow('Smile Detector', frame)
-    #halo.resize()
-    #main_img = halo+main_img
-    c_offset = int(float(x_1)/float(420)*1920)
-    r_offset = int(float(y_1-.5*h_1)/float(240)*1080)
-    print "r_offset: " + str(r_offset)
-    print "c_offset: " + str(c_offset)
-    r_extend = (1080-halo.shape[0])-r_offset
-    c_extend = (1920-halo.shape[1])-c_offset
-    if r_extend<0: r_extend=0
-    if c_extend<0: c_extend=0
-    print "c_extend: " + str(c_extend)
-    print "r_extend: " + str(r_extend)
-    #cv2.imshow('Halo', halo)
-    halo = np.pad(halo, ((r_offset,r_extend),(c_offset,c_extend),(0,0)), mode='constant', constant_values=0)
-    cv2.imshow('Halo2', halo)
+        #cv2.cv.Flip(frame, None, 1)
+        cv2.imshow('Smile Detector', frame)
+        #halo.resize()
+        #main_img = halo+main_img
+        c_offset = int(float(x_1+30)/float(420)*1920)
+        r_offset = int(float(y_1-h_1-30)/float(240)*1080)
+        print "r_offset: " + str(r_offset)
+        print "c_offset: " + str(c_offset)
+        r_extend = (1080-halo.shape[0])-r_offset
+        c_extend = (1920-halo.shape[1])-c_offset
+        #deals with negative values while mainting 1920x1080 dimensionality total
+        #TODO: figure out why going out of bounds seems to crash the program
+        if r_extend<0: 
+            r_offset=r_offset-r_extend
+            r_extend=1
+        if c_extend<0:
+            c_offset = c_offset-c_extend
+            c_extend=1
+        if r_offset<0: 
+            r_extend=r_extend-r_offset
+            r_offset=1
+        if c_offset<0:
+            c_extend = c_extend-c_offset
+            c_offset=1
+        print "c_extend: " + str(c_extend)
+        print "r_extend: " + str(r_extend)
+        #cv2.imshow('Halo', halo)
+        #we switch the c_extend and offset to account for the flipping of the camera feed
+        halo = np.pad(halo, ((r_offset,r_extend),(c_extend,c_offset),(0,0)), mode='constant', constant_values=0)
+        cv2.imshow('Halo2', halo)
+        break
     #wtf is this:
     c = cv2.cv.WaitKey(7) % 0x100
     if c == 27:
