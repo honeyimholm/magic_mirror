@@ -1,5 +1,4 @@
-# magic_mirror
-Augmented Reality "Magic Mirror"
+# Augmented Reality "Magic Mirror"
 
 This project tracks the users head position to overlay a halo when the user smiles. 
 Below we can see a demo of the basic premise:
