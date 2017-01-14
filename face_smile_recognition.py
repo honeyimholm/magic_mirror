@@ -14,12 +14,12 @@ CV_CAP_PROP_FRAME_HEIGHT = 4
 CV_CAP_PROP_FPS = 5
 
 cap = cv2.VideoCapture(0)
-cap.set(CV_CAP_PROP_FRAME_WIDTH ,420)#400
-cap.set(CV_CAP_PROP_FRAME_HEIGHT,240)#400
+cap.set(CV_CAP_PROP_FRAME_WIDTH ,420)#420
+cap.set(CV_CAP_PROP_FRAME_HEIGHT,360)#240
 cap.set(CV_CAP_PROP_FPS, 30)
 
 #load the halo into numpy array
-halo_image = Image.open("Desktop\magic_mirror\halo_flat.png")
+halo_image = Image.open("Desktop\magic_mirror\halo_flat_rotated.png")
 halo = np.array(halo_image)
 
 sF = 1.05
@@ -29,6 +29,14 @@ while True:
 
     counter+=1
     ret, frame = cap.read() # Capture frame-by-frame
+    #rotate frame 90 degrees clockwise
+    #frame2 = Image.open(frame)
+    #frame2 = frame2.rotate(90)
+    #print frame.shape
+    #not sure why you have to make a copy but otherwise drawing will throw a type error
+    frame = np.transpose(frame, (1,0,2)).copy()
+    cv2.imshow('test', frame)
+    #print frame.shape
     img = frame
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     main_img = np.zeros((1080,1920,4), np.int_)
@@ -44,9 +52,17 @@ while True:
         )
     # ---- Draw a rectangle around the faces
     if len(faces)==0:
+            #undo
+            #pass
             cv2.imshow('Halo2', main_img)
     for (x_1, y_1, w_1, h_1) in faces:
+        print x_1
+        print y_1
+        print w_1
+        print h_1
+        print frame.shape
         cv2.rectangle(frame, (x_1, y_1), (x_1+w_1, y_1+h_1), (0, 0, 255), 2)
+        cv2.imshow('test', frame)
         roi_gray = gray[y_1:y_1+h_1, x_1:x_1+w_1]
         roi_color = frame[y_1:y_1+h_1, x_1:x_1+w_1]
 
@@ -79,17 +95,17 @@ while True:
         #cv2.ellipse(frame,(width,height),(100,50),0,0,360,(255,255,255),20)
         #halo resizing .
         #must reset halo every time
-        halo_image = Image.open("Desktop\magic_mirror\halo_flat.png")
+        halo_image = Image.open("Desktop\magic_mirror\halo_flat_rotated_bw.png")
         basewidth = 6*w_1 #resize halo to the width of the face
-        wpercent = (basewidth / float(halo_image.size[0]))
+        wpercent = (basewidth / float(halo_image.size[1]))
         #print "wpercent: " + str(wpercent)
         #print "halo_image_size: " + str(halo_image.size[1])
-        hsize = int((float(halo_image.size[1]) * float(wpercent)))
+        hsize = int((float(halo_image.size[0]) * float(wpercent)))
         if hsize<=0:
             print "Error in halo resizing!"
             hsize=1
         #print "hsize: " + str(hsize)
-        halo_image = halo_image.resize((basewidth, hsize))
+        halo_image = halo_image.resize((hsize, basewidth))
         #for debugging:
         #halo_image.save(r'Desktop\magic_mirror\resized_halo.png')
         #color ordering error due to cv2 vs matplotlib pixel ordering  
@@ -100,33 +116,16 @@ while True:
         #blur_halo = cv2.GaussianBlur(halo, (5,5),0)
         #---------------------
         #smile detection phase
-        for (x, y, w, h) in smile:
-            print "Found", len(smile), "smiles!"
-        #    thickness = 2;
-        #    lineType = 8;
-        #    cv2.rectangle(roi_color, (x, y), (x+w, y+h), (255, 0, 0), 1)
-        #    #cv2.ellipse(img, center, axes, angle, startAngle, endAngle, color[, thickness[, lineType[, shift]]])
-        #    #TODO: make the size of the ellipse correspond to the size of the head box
-        #    if height<0: height=0
-        #    cv2.ellipse(frame,(width,height),(int(w_1/2),int(w_1/6)),0,0,360,(255,255,255),7)
-            #TODO: resize the halo to match reflection width 
-            #140x289x4
-        #    cv2.ellipse(main_img,(width,height),(int(w_1/2),int(w_1/6)),0,0,360,(255,255,255),7)
-            #TODO: function that overlays image with existing black numpy array -> scale starting position from (width,height)
-            #let's only find one smile
-        #    break
         #-------------------------
         #TODO: clean code
         #TODO: add smoothing to halo repositioning
         #cv2.cv.Flip(frame, None, 1)
         #UNDO for debugging
-        #cv2.imshow('Smile Detector', frame)
+            #cv2.imshow('Smile Detector', frame)
         #halo.resize()
-        #main_img = halo+main_img
-            
-            break
+        #main_img = halo+main_img   
         c_offset = int(float(x_1+30)/float(420)*1920)
-        r_offset = int(float(y_1-h_1-30)/float(240)*1080)
+        r_offset = int(float(y_1-h_1-30)/float(360)*1080)
         #print "r_offset: " + str(r_offset)
         #print "c_offset: " + str(c_offset)#
         r_extend = (1080-halo.shape[0])-r_offset
@@ -149,9 +148,30 @@ while True:
         #print "r_extend: " + str(r_extend)
         #cv2.imshow('Halo', halo)
         #we switch the c_extend and offset to account for the flipping of the camera feed
+        #left is up...right is down
+        #up is left...down is right
+        #
         halo = np.pad(halo, ((r_offset,r_extend),(c_extend,c_offset),(0,0)), mode='constant', constant_values=0)
-        cv2.imshow('Halo2', halo)
-        break
+        if len(smile)==0:
+            #undo
+            pass
+            #cv2.imshow('Halo2', main_img)
+        for (x, y, w, h) in smile:
+            print "Found", len(smile), "smiles!"
+            thickness = 2;
+            lineType = 8;
+            cv2.rectangle(roi_color, (x, y), (x+w, y+h), (255, 0, 0), 1)
+            #cv2.ellipse(img, center, axes, angle, startAngle, endAngle, color[, thickness[, lineType[, shift]]])
+            #TODO: make the size of the ellipse correspond to the size of the head box
+            if height<0: height=0
+            cv2.ellipse(frame,(width,height),(int(w_1/2),int(w_1/6)),0,0,360,(255,255,255),7)
+            #TODO: resize the halo to match reflection width 
+            #140x289x4
+        #    cv2.ellipse(main_img,(width,height),(int(w_1/2),int(w_1/6)),0,0,360,(255,255,255),7)
+            #TODO: function that overlays image with existing black numpy array -> scale starting position from (width,height)
+            #let's only find one smile
+            cv2.imshow('Halo2', halo)
+            break
     #wtf is this:
     c = cv2.cv.WaitKey(7) % 0x100
     if c == 27:
